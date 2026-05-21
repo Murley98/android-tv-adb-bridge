@@ -43,6 +43,19 @@ TV remote (IR)
 
 A persistent ADB listener runs on a small Linux machine (e.g. a Proxmox LXC container, Raspberry Pi, or any always-on Linux box). It captures volume key events from the TV and forwards them to Home Assistant, which controls the AVR.
 
+### Optional: auto-setup receiver on TV power-on
+
+Some AVRs need a nudge after being switched on — e.g. setting the correct input source and sound mode — before they output audio. Triggering this from a Home Assistant automation based on the AVR's own state can be slow (state updates from the receiver can take up to 30 seconds).
+
+Since the ADB connection drops when the TV turns off and re-establishes when it turns back on, the script uses this as a reliable and instant proxy for "TV just turned on". On every reconnect it waits a configurable number of seconds, then sets source, sound mode and volume via the HA API.
+
+This is optional and disabled by default if you remove the `setup_receiver` call. Configure it at the top of the script:
+
+```bash
+STARTUP_DELAY=5      # seconds to wait before sending commands
+STARTUP_VOLUME=0.5   # volume level 0.0–1.0 to set on startup
+```
+
 ---
 
 ## Requirements
