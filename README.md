@@ -45,8 +45,7 @@ A persistent ADB listener runs on a small Linux machine (e.g. a Proxmox LXC cont
 
 ### Tip: AVR initialization on power-on
 
-Some receivers need a nudge after being switched on before they output audio over optical — e.g. they require an explicit input source or volume command to "wake up" the audio pipeline. If you experience this, a small Home Assistant automation can handle it: trigger on the AVR entity changing state to `on`, wait a few seconds, then set the desired input source and volume. This keeps the logic in HA where it belongs and avoids any timing hacks in the bridge script.
-
+Some receivers need a nudge after being switched on before they output audio over optical — e.g. they require an explicit input source or volume command to "wake up" the audio pipeline. If you experience this, a small Home Assistant automation can handle it: trigger on the AVR entity changing state to `on`, wait a few seconds, then set the desired input source and volume. You probably could solve this with the ADB skript as well, but i didn´t
 ---
 
 ## Requirements
