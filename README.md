@@ -6,22 +6,28 @@ Bridge Android TV IR remote volume buttons to Home Assistant via ADB — control
 
 Modern TVs sometimes output audio formats (e.g. Dolby Atmos, TrueHD) that older AV receivers cannot decode over HDMI ARC — resulting in no sound or audio glitches. The common fix is to switch to an **optical cable (TOSLINK/S/PDIF)**, which carries a signal the receiver can handle. However, optical cable has no CEC, so:
 
-- The TV remote's volume buttons only control the TV's own internal volume — not the AVR
+- The TV remote's volume buttons get blocked entirely — the TV neither controls the AVR nor its own internal audio
 - There's no native way to pass those IR signals to external devices
 
 ### Alternatives I considered (and why I didn't use them)
 
 **Universal remote:** The classic solution — program a universal remote to control the AVR directly. Didn't work for me because the receiver sits in a closed cabinet with no line of sight for IR, and I didn't want to buy an IR blaster just for this. Also, this approach is way cooler.
 
-**HDMI splitter:** A splitter (e.g. Feintech) can in theory strip the audio to optical while keeping CEC alive on the HDMI side. I actually bought one — it didn't work for me. Didn't want to spend more money trying different models.
-
-**Volume key remapping:** On some Android TV models it's possible to remap the volume buttons or intercept key events internally via ADB before the TV processes them. This is highly device-specific and didn't work on my TCL model.
+**HDMI splitter:** There are devices (e.g. from Feintech) that re-encode the HDMI ARC signal to an older Dolby format the receiver can handle, while keeping CEC intact. I bought one — it didn't work for me, and I didn't want to spend more money trying different models.
 
 ### What about CEC?
 
 You can still run an HDMI cable alongside the optical cable purely for CEC. On/off control of the receiver should still work this way. However, **volume control via CEC is blocked** — at least on my TV, once the audio output is set to optical, the TV intercepts volume key presses for its own internal volume and doesn't pass them through CEC anymore. That's exactly the problem this project solves.
 
 If CEC doesn't work at all on your setup, the same ADB listener approach used here could be extended to intercept power button events and trigger the receiver via Home Assistant.
+
+### Known limitation: native TV overlays
+
+At least on my TCL model, two overlays from the TV itself cannot be suppressed:
+- The native volume bar (even though the TV isn't actually changing any volume)
+- A notification saying that volume control via optical is not supported
+
+I tried removing them via key remapping and by intercepting the volume signal internally via ADB before the TV processes it — neither worked. If you've found a solution for this, feel free to open an issue or PR.
 
 ---
 
