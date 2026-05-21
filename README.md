@@ -4,12 +4,24 @@ Bridge Android TV IR remote volume buttons to Home Assistant via ADB — control
 
 ## Why does this exist?
 
-When your TV is connected to an AV receiver via **optical cable (TOSLINK/S/PDIF)**, there is no HDMI ARC/eARC and therefore no CEC. This means:
+Modern TVs sometimes output audio formats (e.g. Dolby Atmos, TrueHD) that older AV receivers cannot decode over HDMI ARC — resulting in no sound or audio glitches. The common fix is to switch to an **optical cable (TOSLINK/S/PDIF)**, which carries a signal the receiver can handle. However, optical cable has no CEC, so:
 
 - The TV remote's volume buttons only control the TV's own internal volume — not the AVR
-- There's no native way to pass IR signals from the remote to external devices
+- There's no native way to pass those IR signals to external devices
 
-This project solves that by running a persistent ADB listener on a small Linux machine (e.g. a Proxmox LXC container, Raspberry Pi, or any always-on Linux box) that captures volume key events and forwards them to Home Assistant, which then controls the AVR.
+### Why not an HDMI splitter?
+
+An HDMI splitter (e.g. Feintech) can in theory strip the audio to optical while keeping CEC alive on the HDMI side. In practice this doesn't always work reliably, and may not be worth the added complexity.
+
+### What about remapping volume keys on the TV?
+
+On some Android TV models it's possible to remap the volume buttons or intercept the key events internally via ADB before the TV processes them — which would avoid the TV's own volume bar appearing on screen. However, this is highly device-specific and doesn't work on all models (e.g. certain TCL TVs don't expose this). If you want to explore it, `adb shell` + `input keyevent` remapping or `getevent`-based interception are the starting points.
+
+### What about CEC for power control?
+
+You can still run an HDMI cable alongside the optical cable purely for CEC — this allows the TV to turn the receiver on/off automatically. If your setup doesn't support CEC at all, the same ADB listener approach used here could be extended to intercept power button events and trigger the receiver via Home Assistant.
+
+This project solves the volume problem by running a persistent ADB listener on a small Linux machine (e.g. a Proxmox LXC container, Raspberry Pi, or any always-on Linux box) that captures volume key events and forwards them to Home Assistant, which then controls the AVR.
 
 ---
 
@@ -17,23 +29,15 @@ This project solves that by running a persistent ADB listener on a small Linux m
 
 ### Volume Bridge (`tv-volume-bridge.sh`)
 
-Intercepts **VOL+ / VOL−** on the TV remote and forwards them to a media player entity in Home Assistant (e.g. a Denon AVR). After each press, it queries the current volume level and triggers a pixel-art overlay on the TV showing the volume in dB.
+Intercepts **VOL+ / VOL−** on the TV remote and forwards them to a media player entity in Home Assistant (e.g. a Denon AVR). After each press, it queries the current volume level and optionally triggers a pixel-art overlay on the TV showing the volume in dB.
 
 ```
 TV remote (IR)
   → ADB getevent
   → Home Assistant REST API (media_player.volume_up / volume_down)
   → AVR (any HA media_player entity)
-  → ADB: launch volume overlay app on TV
+  → ADB: launch volume overlay app on TV  [optional]
 ```
-
-### Web Gamepad (`gamepad/`)
-
-A Python WebSocket server + HTML touch controller that creates a virtual uinput gamepad on the host. Useful for streaming setups (e.g. Sunshine/Moonlight) where you want to use a phone as a controller.
-
-- Serves the touch UI on port **8080**
-- WebSocket on port **8765**
-- Creates a `/dev/uinput` virtual gamepad (D-Pad, ABXY, L/R, Select/Start)
 
 ---
 
@@ -43,10 +47,6 @@ A Python WebSocket server + HTML touch controller that creates a virtual uinput 
 - Android TV with **ADB over network enabled** (Developer Options → Network Debugging)
 - Home Assistant with a long-lived access token
 - `curl`, `python3` on the Linux machine
-
-For the web gamepad:
-- `python3-evdev`, `python3-websockets` (`pip3 install evdev websockets`)
-- `/dev/uinput` access (either as root or with appropriate cgroup permissions)
 
 ---
 
@@ -98,15 +98,18 @@ systemctl enable --now tv-volume-bridge.service
 
 ---
 
-## Volume Overlay App
+## Volume Overlay App (optional)
 
-`tv-volume-bridge.sh` expects an Android app installed on the TV that displays the current volume as a pixel-art overlay:
+The script can optionally launch a pixel-art volume overlay on the TV after each key press. The overlay displays the current volume in dB, auto-dismisses after a few seconds, and has no UI chrome — it appears as a clean floating indicator on top of whatever is playing.
 
-```
+> The overlay app is entirely optional. If you don't install it, simply remove the `show_overlay` call from the script and everything else works the same.
+
+The APK is available in the [Releases](../../releases) section.
+
+It is triggered via:
+```bash
 adb shell am start -n com.simonmurr.volumeoverlay/.OverlayActivity --ef volume_db -42.5
 ```
-
-The app launches as a transparent overlay, shows the dB value, and auto-dismisses after a few seconds. The APK is available in the [Releases](../../releases) section.
 
 The dB value is calculated from the HA `volume_level` attribute (0.0–1.0) using the Denon AVR scale:
 ```
