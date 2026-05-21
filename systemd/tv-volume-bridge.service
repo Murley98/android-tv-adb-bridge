@@ -1,0 +1,11 @@
+[Unit]
+Description=TV Volume Bridge to Denon via Home Assistant
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/tv-volume-bridge.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
