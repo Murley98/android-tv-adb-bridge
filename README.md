@@ -43,6 +43,10 @@ TV remote (IR)
 
 A persistent ADB listener runs on a small Linux machine (e.g. a Proxmox LXC container, Raspberry Pi, or any always-on Linux box). It captures volume key events from the TV and forwards them to Home Assistant, which controls the AVR.
 
+### Tip: AVR initialization on power-on
+
+Some receivers need a nudge after being switched on before they output audio over optical — e.g. they require an explicit input source or volume command to "wake up" the audio pipeline. If you experience this, a small Home Assistant automation can handle it: trigger on the AVR entity changing state to `on`, wait a few seconds, then set the desired input source and volume. This keeps the logic in HA where it belongs and avoids any timing hacks in the bridge script.
+
 ---
 
 ## Requirements
@@ -50,6 +54,7 @@ A persistent ADB listener runs on a small Linux machine (e.g. a Proxmox LXC cont
 - Linux machine with **ADB** installed (`apt install adb`)
 - Android TV with **ADB over network enabled** (Developer Options → Network Debugging)
 - Home Assistant with a long-lived access token
+- **Network-capable AV receiver** integrated in Home Assistant (e.g. Denon/Marantz via the `denonavr` integration)
 - `curl`, `python3` on the Linux machine
 
 ---
