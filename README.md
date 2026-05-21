@@ -9,27 +9,23 @@ Modern TVs sometimes output audio formats (e.g. Dolby Atmos, TrueHD) that older 
 - The TV remote's volume buttons only control the TV's own internal volume — not the AVR
 - There's no native way to pass those IR signals to external devices
 
-### Why not an HDMI splitter?
+### Alternatives I considered (and why I didn't use them)
 
-An HDMI splitter (e.g. Feintech) can in theory strip the audio to optical while keeping CEC alive on the HDMI side. In practice this doesn't always work reliably, and may not be worth the added complexity.
+**Universal remote:** The classic solution — program a universal remote to control the AVR directly. Didn't work for me because the receiver sits in a closed cabinet with no line of sight for IR, and I didn't want to buy an IR blaster just for this. Also, this approach is way cooler.
 
-### What about remapping volume keys on the TV?
+**HDMI splitter:** A splitter (e.g. Feintech) can in theory strip the audio to optical while keeping CEC alive on the HDMI side. I actually bought one — it didn't work for me. Didn't want to spend more money trying different models.
 
-On some Android TV models it's possible to remap the volume buttons or intercept the key events internally via ADB before the TV processes them — which would avoid the TV's own volume bar appearing on screen. However, this is highly device-specific and doesn't work on all models (e.g. certain TCL TVs don't expose this). If you want to explore it, `adb shell` + `input keyevent` remapping or `getevent`-based interception are the starting points.
+**Volume key remapping:** On some Android TV models it's possible to remap the volume buttons or intercept key events internally via ADB before the TV processes them. This is highly device-specific and didn't work on my TCL model.
 
-### What about CEC for power control?
+### What about CEC?
 
-You can still run an HDMI cable alongside the optical cable purely for CEC — this allows the TV to turn the receiver on/off automatically. If your setup doesn't support CEC at all, the same ADB listener approach used here could be extended to intercept power button events and trigger the receiver via Home Assistant.
+You can still run an HDMI cable alongside the optical cable purely for CEC. On/off control of the receiver should still work this way. However, **volume control via CEC is blocked** — at least on my TV, once the audio output is set to optical, the TV intercepts volume key presses for its own internal volume and doesn't pass them through CEC anymore. That's exactly the problem this project solves.
 
-This project solves the volume problem by running a persistent ADB listener on a small Linux machine (e.g. a Proxmox LXC container, Raspberry Pi, or any always-on Linux box) that captures volume key events and forwards them to Home Assistant, which then controls the AVR.
+If CEC doesn't work at all on your setup, the same ADB listener approach used here could be extended to intercept power button events and trigger the receiver via Home Assistant.
 
 ---
 
-## Features
-
-### Volume Bridge (`tv-volume-bridge.sh`)
-
-Intercepts **VOL+ / VOL−** on the TV remote and forwards them to a media player entity in Home Assistant (e.g. a Denon AVR). After each press, it queries the current volume level and optionally triggers a pixel-art overlay on the TV showing the volume in dB.
+## How it works
 
 ```
 TV remote (IR)
@@ -38,6 +34,8 @@ TV remote (IR)
   → AVR (any HA media_player entity)
   → ADB: launch volume overlay app on TV  [optional]
 ```
+
+A persistent ADB listener runs on a small Linux machine (e.g. a Proxmox LXC container, Raspberry Pi, or any always-on Linux box). It captures volume key events from the TV and forwards them to Home Assistant, which controls the AVR.
 
 ---
 
@@ -102,9 +100,13 @@ systemctl enable --now tv-volume-bridge.service
 
 The script can optionally launch a pixel-art volume overlay on the TV after each key press. The overlay displays the current volume in dB, auto-dismisses after a few seconds, and has no UI chrome — it appears as a clean floating indicator on top of whatever is playing.
 
-> The overlay app is entirely optional. If you don't install it, simply remove the `show_overlay` call from the script and everything else works the same.
+> The overlay app is entirely optional. If you don't want it, simply remove the `show_overlay` call from the script — everything else works the same.
 
-The APK is available in the [Releases](../../releases) section.
+Download the APK from the [Releases](../../releases) section and install it via ADB:
+
+```bash
+adb -s YOUR_TV_IP:5555 install volumeoverlay.apk
+```
 
 It is triggered via:
 ```bash
