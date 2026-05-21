@@ -17,7 +17,7 @@ Modern TVs sometimes output audio formats (e.g. Dolby Atmos, TrueHD) that older 
 
 ### What about CEC?
 
-You can still run an HDMI cable alongside the optical cable purely for CEC. On/off control of the receiver should still work this way. However, **volume control via CEC is blocked** — at least on my TV, once the audio output is set to optical, the TV intercepts volume key presses for its own internal volume and doesn't pass them through CEC anymore. That's exactly the problem this project solves.
+You can still run an HDMI cable alongside the optical cable purely for CEC. On/off control of the receiver should still work this way. However, **volume control via CEC is blocked** — at least on my TV, once the audio output is set to optical, the TV intercepts volume key presses and doesn't pass them through CEC anymore. That's exactly the problem this project solves.
 
 If CEC doesn't work at all on your setup, the same ADB listener approach used here could be extended to intercept power button events and trigger the receiver via Home Assistant.
 
